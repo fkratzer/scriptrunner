@@ -1,0 +1,42 @@
+import com.atlassian.jira.component.ComponentAccessor
+import com.atlassian.jira.issue.fields.CustomField
+import com.atlassian.jira.user.ApplicationUser
+import com.atlassian.jira.issue.comments.CommentManager
+import com.atlassian.jira.issue.Issue;
+
+
+import org.apache.log4j.Logger
+import org.apache.log4j.Level
+  
+def log = Logger.getLogger("com.acme.createComment")
+log.setLevel(Level.DEBUG)
+  
+
+def commentManager = ComponentAccessor.getCommentManager()
+
+Issue issue = event.issue
+
+def author = issue.getReporter() as ApplicationUser
+log.debug author
+
+
+def comments = commentManager.getComments(event.issue)
+def assignee = comments.last().authorApplicationUser.getUsername()
+def commenthold = comments.last().getBody() as String
+def mentioned = ComponentAccessor.getUserUtil().getUserByKey("secops").key
+log.debug commenthold
+def newcomment = "Hello [~$assignee] If you require INFOSEC assistance, open an issue in https://lv-jirastg01.corp.proofpoint.com/jira/projects/INFOSEC/" as String
+log.debug newcomment
+if (commenthold.contains(mentioned))
+{
+    
+    log.debug "Made It"
+   
+    commentManager.create(issue,author,newcomment,true)
+    issue.store()
+
+    
+
+
+}
+
