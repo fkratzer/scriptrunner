@@ -1,0 +1,54 @@
+import com.atlassian.jira.ComponentManager
+import groovy.xml.MarkupBuilder
+import com.atlassian.jira.issue.Issue
+import com.atlassian.jira.config.properties.APKeys
+import com.atlassian.jira.issue.link.LinkCollectionImpl;
+import com.atlassian.jira.ComponentManager;
+import com.atlassian.jira.issue.link.IssueLink;
+import com.atlassian.jira.component.ComponentAccessor;
+
+import org.apache.log4j.Logger
+import org.apache.log4j.Level
+ 
+def log = Logger.getLogger("com.acme.ListLinks")
+log.setLevel(Level.DEBUG)
+
+def issue = event.issue;
+def user = event.getUser() 
+def comment = event.getComment()
+def commentManager = ComponentAccessor.getCommentManager()
+def issueManager = ComponentAccessor.getIssueManager()
+String results = "";
+def valid = false;
+
+List<IssueLink> allOutIssueLink = ComponentAccessor.getIssueLinkManager().getOutwardLinks(issue.getId());
+ for (Iterator<IssueLink> outIterator = allOutIssueLink.iterator(); outIterator.hasNext();) {
+ IssueLink issueLink = (IssueLink) outIterator.next();
+     
+ def linkedIssue = issueLink.getDestinationObject()
+ String type = linkedIssue.getIssueType().getName();
+ String issueid = issue.key; 
+ def linkedissueid = linkedIssue.getKey();
+ Issue issuetocomment = issueManager.getIssueObject(linkedissueid)    
+ String issuelinktype = issueLink.getIssueLinkType().getName();
+ if (issuelinktype == "Blocks"){
+         log.debug('Out:' + issueid + ' ' +  linkedissueid + ' '  + type + ' ' + issuelinktype + ' ' + comment.body + ' ' + user) 
+         commentManager.create(issuetocomment, user, comment.body, true)
+ }
+ }
+
+List<IssueLink> allInIssueLink = ComponentAccessor.getIssueLinkManager().getInwardLinks(issue.getId());
+ for (Iterator<IssueLink> outIterator = allInIssueLink.iterator(); outIterator.hasNext();) {
+ IssueLink issueLink = (IssueLink) outIterator.next();
+
+ def linkedIssue = issueLink.getSourceObject()
+ String type = linkedIssue.getIssueType().getName();
+ String issueid = issue.key;
+ def linkedissueid = linkedIssue.getKey();
+ Issue issuetocomment = issueManager.getIssueObject(linkedissueid)
+ String issuelinktype = issueLink.getIssueLinkType().getName();
+ if (issuelinktype == "Blocks"){
+      log.debug('Out:' + issueid + ' ' +  linkedissueid + ' '  + type + ' ' + issuelinktype + ' ' + comment.body + ' ' + user) 
+      commentManager.create(issuetocomment, user, comment.body, true)
+ }
+ } 
