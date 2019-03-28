@@ -1,3 +1,6 @@
+import com.atlassian.jira.component.ComponentAccessor
+'Salesforce' in cfValues['Finance Applications']*.value
+
 ${cfValues['Requestor Name'] ?: ""} needs to be setup in Salesforce
 Regards,
 Proofpoint Service Desk
