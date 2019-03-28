@@ -1,0 +1,11 @@
+def desc = getFieldById("description")
+
+def defaultValue = """Please provide the following information, in order for NOC to evaluate your request:
+1. BU (requesting)
+2. Vendor
+3. Notification detail
+4. NOC response requirement """ .replaceAll(/    /, '')
+
+if (! underlyingIssue?.description) { 
+    desc.setFormValue(defaultValue)
+}
