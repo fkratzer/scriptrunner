@@ -1,0 +1,12 @@
+import com.atlassian.jira.component.ComponentAccessor
+import com.atlassian.jira.issue.CustomFieldManager
+import com.atlassian.jira.issue.fields.CustomField
+
+CustomFieldManager customFieldManager = ComponentAccessor.getCustomFieldManager()
+
+
+if (issue.getProjectObject().getKey() == 'ENGLAB') {
+
+   return '<a href="https://wiki.proofpoint.com/wiki/display/ENG/CMDB+Puppet+Connectivity+and+Creation+FAQ"><font size="3" color="red">CMDB Puppet Connectivity and Creation FAQ</font></a>'
+
+}
