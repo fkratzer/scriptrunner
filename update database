@@ -1,0 +1,41 @@
+import com.atlassian.jira.ComponentManager
+import com.atlassian.jira.component.ComponentAccessor
+import com.atlassian.jira.issue.IssueManager
+import com.atlassian.jira.issue.Issue
+import com.atlassian.jira.issue.CustomFieldManager
+import com.atlassian.jira.issue.fields.CustomField
+import com.atlassian.jira.user.util.UserManager
+import com.atlassian.jira.issue.MutableIssue
+import groovy.sql.Sql
+import java.sql.Driver
+import java.text.SimpleDateFormat
+import java.sql.Timestamp
+import java.text.DateFormat
+import java.util.Date
+def datecreated = new Timestamp(new Date().getTime())
+def finapp = customFieldManager.getCustomFieldObject('Finance Applications')
+def usertype = customFieldManager.getCustomFieldObject('User Type')
+def user = customFieldManager.getCustomFieldObject('Requestor Name')
+MutableIssue issue = issue
+def issuehold = issue.getKey()
+def driver = Class.forName('com.microsoft.sqlserver.jdbc.SQLServerDriver').newInstance() as Driver 
+
+def props = new Properties()
+props.setProperty("user", "devtools") 
+props.setProperty("password", "devtools")
+
+def conn = driver.connect("jdbc:sqlserver://localhost:5432/jira_6.4.6", props) 
+def sql = new Sql(conn)
+
+try {
+        def data = [[issue:issuehold, user:user, finapp:finapp, usertype:usertype, datecreated:datecreated]]
+        // loop and insert data
+        data.each { dataItem ->
+            sql.execute("INSERT INTO <New Table> (Issue, Username, FinanceApp, UserType, DateCreated) values (:issue, :user, :finapp, :usertype, :datecreated)",
+                [issue:dataItem.issue, user:dataItem.user, finapp:dataItem.finapp, usertype:dataItem.usertype, datecreated:dataItem.datecreated]);
+        }
+    }
+ finally {
+    sql.close()
+    conn.close()
+}
