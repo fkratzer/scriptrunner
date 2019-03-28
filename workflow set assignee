@@ -1,0 +1,18 @@
+import com.atlassian.jira.component.ComponentAccessor
+import com.opensymphony.workflow.WorkflowContext
+
+def issueManager = ComponentAccessor.getIssueManager()
+def issueService = ComponentAccessor.getIssueService()
+def userManager = ComponentAccessor.getUserManager()
+
+
+def issueObject = issueManager.getIssueObject(issue.key)
+
+
+
+
+
+    def assignee = userManager.getUserByKey("citse");
+    issue.setAssignee(assignee);
+
+ 	return
