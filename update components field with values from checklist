@@ -1,0 +1,68 @@
+import com.atlassian.jira.component.ComponentAccessor;
+import com.atlassian.jira.bc.project.component.ProjectComponent
+import com.atlassian.jira.bc.project.component.ProjectComponentManager
+import com.atlassian.jira.issue.IssueManager
+import com.atlassian.jira.issue.Issue;
+import com.atlassian.jira.issue.MutableIssue
+import com.atlassian.jira.issue.customfields.manager.OptionsManager;
+import com.atlassian.jira.issue.customfields.option.Option;
+import com.atlassian.jira.issue.UpdateIssueRequest
+import com.atlassian.jira.event.type.EventDispatchOption
+import org.apache.log4j.Logger
+import org.apache.log4j.Level
+
+def projectComponentManager = ComponentAccessor.getProjectComponentManager()
+
+def customFieldManager = ComponentAccessor.getCustomFieldManager()
+def project = issue.getProjectObject()
+def userUtil = ComponentAccessor.getUserUtil()
+
+def log = Logger.getLogger("com.acme.CreateSubtask")
+log.setLevel(Level.INFO)
+
+MutableIssue issue = issue as MutableIssue;
+ProjectComponent component;
+log.info("Issue " + issue)
+long projectId = issue.getProjectObject().getId()
+def cfName = "Finance Applications"
+//get the custom field with name Finance Applications
+
+def cf = customFieldManager.getCustomFieldObjectByName(cfName)
+log.info("cf: " + cf)
+
+
+if (cf != null) {
+Collection<ProjectComponent> issueComponents = new ArrayList<>();
+StringBuilder stringBuilder = new StringBuilder()
+ ((List<Option>) issue.getCustomFieldValue(cf)).each {
+     log.info(it.getValue())
+     component = projectComponentManager.findByComponentName(projectId, it.getValue())
+     stringBuilder.append(it.getValue()).append(", ")
+     issueComponents.add(component)
+     
+     
+     
+ }    
+   
+def components = stringBuilder.toString()
+
+    
+if (components != null){
+
+    
+   log.info "Component Value is: " + issueComponents
+    
+    
+    issue.setComponent(issueComponents)
+    
+   //myissue.setComponent([component])
+   
+}
+
+}
+    
+else
+{
+    log.info("Component Not Found")
+    return
+}
