@@ -19,15 +19,24 @@ def userUtil = ComponentAccessor.getUserUtil()
 
 def log = Logger.getLogger("com.acme.CreateSubtask")
 log.setLevel(Level.INFO)
-
+def cfName = ''
 MutableIssue issue = issue as MutableIssue;
 ProjectComponent component;
 log.info("Issue " + issue)
 long projectId = issue.getProjectObject().getId()
-def cfName = "Finance Applications"
+if(customFieldManager.getCustomFieldObjects(issue).find { it.name == "Finance Applications" }){
+    cfName = "Finance Applications"
+}
+if (customFieldManager.getCustomFieldObjects(issue).find { it.name == "Atlassian Applications" }){
+    cfName = "Atlassian Applications"
+}    
+if (customFieldManager.getCustomFieldObjects(issue).find { it.name == "Productivity Applications" }){
+    cfName = "Productivity Applications"
+} 
 //get the custom field with name Finance Applications
-
+if(cfName != null){}
 def cf = customFieldManager.getCustomFieldObjectByName(cfName)
+
 log.info("cf: " + cf)
 
 
@@ -54,6 +63,7 @@ if (components != null){
     
     
     issue.setComponent(issueComponents)
+    issue.setSummary(issue.summary + " - " + components)
     
    //myissue.setComponent([component])
    
