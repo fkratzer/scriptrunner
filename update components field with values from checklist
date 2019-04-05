@@ -1,78 +1,85 @@
 import com.atlassian.jira.component.ComponentAccessor;
 import com.atlassian.jira.bc.project.component.ProjectComponent
-import com.atlassian.jira.bc.project.component.ProjectComponentManager
 import com.atlassian.jira.issue.IssueManager
 import com.atlassian.jira.issue.Issue;
 import com.atlassian.jira.issue.MutableIssue
 import com.atlassian.jira.issue.customfields.manager.OptionsManager;
 import com.atlassian.jira.issue.customfields.option.Option;
-import com.atlassian.jira.issue.UpdateIssueRequest
+import com.atlassian.jira.bc.issue.IssueService;
 import com.atlassian.jira.event.type.EventDispatchOption
+
 import org.apache.log4j.Logger
 import org.apache.log4j.Level
 
-def projectComponentManager = ComponentAccessor.getProjectComponentManager()
-
-def customFieldManager = ComponentAccessor.getCustomFieldManager()
-def project = issue.getProjectObject()
-def userUtil = ComponentAccessor.getUserUtil()
-
 def log = Logger.getLogger("com.acme.CreateSubtask")
 log.setLevel(Level.INFO)
-def cfName = ''
-MutableIssue issue = issue as MutableIssue;
-ProjectComponent component;
-log.info("Issue " + issue)
-long projectId = issue.getProjectObject().getId()
-if(customFieldManager.getCustomFieldObjects(issue).find { it.name == "Finance Applications" }){
+
+
+def componentManager = ComponentAccessor.projectComponentManager
+def customFieldManager = ComponentAccessor.getCustomFieldManager()
+
+IssueManager issueManager = ComponentAccessor.getIssueManager()
+
+MutableIssue missue = event.issue as MutableIssue;
+
+log.info("Mutable Issue " + missue)
+
+def project= missue.getProjectObject();
+
+def component = componentManager.findByComponentName(missue.projectObject.id, "None")
+
+log.info("Project " + project)
+log.info("Component Init " + component)
+
+def cfName = '' as String;
+
+long projectId = project.getId()
+log.info("ProjectID " + projectId)
+
+
+if (missue.getSummary() == 'Finance Team Applications Request'){
     cfName = "Finance Applications"
 }
-if (customFieldManager.getCustomFieldObjects(issue).find { it.name == "Atlassian Applications" }){
+else if (missue.getSummary() == 'Atlassian Applications Request'){
     cfName = "Atlassian Applications"
 }    
-if (customFieldManager.getCustomFieldObjects(issue).find { it.name == "Productivity Applications" }){
-    cfName = "Productivity Applications"
+else if (missue.getSummary() == 'Business Applications Request'){
+    cfName = "Business Applications"
 } 
+else if (missue.getSummary() == 'Incident'){
+    cfName = "Incident Type"
+} 
+
+
 //get the custom field with name Finance Applications
-if(cfName != null){}
-def cf = customFieldManager.getCustomFieldObjectByName(cfName)
+log.info("cfName: " + cfName)
+if(cfName){
+
+def cf = ComponentAccessor.getCustomFieldManager().getCustomFieldObjectByName(cfName)
 
 log.info("cf: " + cf)
 
 
-if (cf != null) {
-Collection<ProjectComponent> issueComponents = new ArrayList<>();
+
+if(cf){
+Collection<ProjectComponent> issueComponents = new ArrayList<>();    
 StringBuilder stringBuilder = new StringBuilder()
- ((List<Option>) issue.getCustomFieldValue(cf)).each {
-     log.info(it.getValue())
-     component = projectComponentManager.findByComponentName(projectId, it.getValue())
-     stringBuilder.append(it.getValue()).append(", ")
+((List<Option>) missue.getCustomFieldValue(cf)).each {
+     
+          
+     component = componentManager.findByComponentName(missue.projectObject.id, it.getValue()) 
+     log.info("In The Loop: " + component.getName())
      issueComponents.add(component)
+     stringBuilder.append(" : ").append(it.getValue())
      
-     
-     
+         
  }    
-   
-def components = stringBuilder.toString()
+  def components = stringBuilder.toString()
+  componentManager.updateIssueProjectComponents(missue,issueComponents)
+  missue.setSummary(missue.summary + components)
+  def reporter = missue.reporter
 
-    
-if (components != null){
+    issueManager.updateIssue(reporter, missue, EventDispatchOption.ISSUE_UPDATED , true)
 
-    
-   log.info "Component Value is: " + issueComponents
-    
-    
-    issue.setComponent(issueComponents)
-    issue.setSummary(issue.summary + " - " + components)
-    
-   //myissue.setComponent([component])
-   
-}
-
-}
-    
-else
-{
-    log.info("Component Not Found")
-    return
+}   
 }
