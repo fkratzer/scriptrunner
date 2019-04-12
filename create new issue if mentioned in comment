@@ -1,0 +1,78 @@
+import com.atlassian.jira.component.ComponentAccessor
+import com.atlassian.jira.issue.fields.CustomField
+import com.atlassian.jira.user.ApplicationUser
+import com.atlassian.jira.issue.comments.CommentManager
+import com.atlassian.jira.issue.comments.Comment
+import com.atlassian.jira.issue.IssueManager
+import com.atlassian.jira.issue.Issue
+import com.atlassian.jira.issue.MutableIssue
+import com.atlassian.jira.event.type.EventDispatchOption
+import org.apache.log4j.Logger
+import org.apache.log4j.Level
+ 
+def log = Logger.getLogger("com.acme.createComment")
+log.setLevel(Level.INFO)
+  
+
+def commentManager = ComponentAccessor.getCommentManager()
+def userManager = ComponentAccessor.getUserManager()
+
+IssueManager issueManager = ComponentAccessor.getIssueManager()
+Issue issue = event.issue
+MutableIssue missue = issue as MutableIssue;
+log.info issue
+
+def reporter = issue.getReporter() as ApplicationUser
+def comments = commentManager.getComments(issue)
+def mentioned = userManager.getUserByKey("secops").key 
+Integer results
+// check that mention has not already been made in comments to eliminate multiple tickets
+
+if (comments)
+{   
+    results = 0
+    comments.each { 
+        String commentValue = comments.body;
+        if (commentValue.contains(mentioned)){
+        results = results + 1
+        }
+        
+        
+    }      
+   log.info results
+}
+ 
+
+
+def author = comments.last().authorApplicationUser.getUsername() 
+log.info "Comment made by: " + author
+def commenthold = comments.last().getBody() as String
+
+
+log.info "Comment: " + commenthold
+
+if (commenthold.contains(mentioned) && results < 2)
+{
+    log.info "Made It"
+
+ // Create Issue in INFOSEC
+def PROJECT_KEY_TO = "INFOSEC"
+def issueFactory = ComponentAccessor.getIssueFactory()  
+def projectTo = ComponentAccessor.getProjectManager().getProjectByCurrentKey(PROJECT_KEY_TO)    
+
+def newIssue = issueFactory.cloneIssue(issue)
+newIssue.setProjectObject(projectTo) 
+newIssue.setSummary("Cloned from: " + missue.getKey() + " " + missue.summary)
+newIssue.setAssigneeId(mentioned)    
+Map<String,Object> newIssueParams = ["issue":newIssue] as Map<String,Object>
+    issueManager.createIssueObject(author, newIssueParams)
+    
+    
+    def newComment = "Hello [~$author] new Issue " + newIssue + " has automatically been raised in " + projectTo + "."
+    log.info "New Comment: " + newComment 
+    
+    commentManager.create(missue, mentioned, newComment, true)
+    issueManager.updateIssue(reporter, missue, EventDispatchOption.ISSUE_UPDATED , true)
+   
+}
+return;
