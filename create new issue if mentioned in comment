@@ -25,12 +25,12 @@ log.info issue
 def reporter = issue.getReporter() as ApplicationUser
 def comments = commentManager.getComments(issue)
 def mentioned = userManager.getUserByKey("secops").key 
-Integer results
+Integer results = 0
 // check that mention has not already been made in comments to eliminate multiple tickets
 
 if (comments)
 {   
-    results = 0
+
     comments.each { 
         String commentValue = comments.body;
         if (commentValue.contains(mentioned)){
@@ -39,7 +39,7 @@ if (comments)
         
         
     }      
-   log.info results
+   log.info "Results: " + results
 }
  
 
