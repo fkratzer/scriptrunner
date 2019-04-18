@@ -7,7 +7,7 @@ import com.atlassian.jira.issue.customfields.manager.OptionsManager;
 import com.atlassian.jira.issue.customfields.option.Option;
 import com.atlassian.jira.bc.issue.IssueService;
 import com.atlassian.jira.event.type.EventDispatchOption
-
+import com.atlassian.jira.issue.customfields.option.LazyLoadedOption
 import org.apache.log4j.Logger
 import org.apache.log4j.Level
 
@@ -20,22 +20,18 @@ def customFieldManager = ComponentAccessor.getCustomFieldManager()
 
 IssueManager issueManager = ComponentAccessor.getIssueManager()
 
-MutableIssue missue = event.issue as MutableIssue;
+MutableIssue missue = event.issue as MutableIssue
 
 log.info("Mutable Issue " + missue)
 
 def project= missue.getProjectObject();
 
 def component = componentManager.findByComponentName(missue.projectObject.id, "None")
+def cfName = 'summary' as String;
 
-log.info("Project " + project)
-log.info("Component Init " + component)
-
-def cfName = '' as String;
+def cf = customFieldManager.getCustomFieldObjectByName(cfName)
 
 long projectId = project.getId()
-log.info("ProjectID " + projectId)
-
 
 if (missue.getSummary() == 'Finance Team Applications Request'){
     cfName = "Finance Applications"
@@ -48,38 +44,64 @@ else if (missue.getSummary() == 'Business Applications Request'){
 } 
 else if (missue.getSummary() == 'Incident'){
     cfName = "Incident Type"
-} 
+    def customFieldObject = customFieldManager.getCustomFieldObjectByName(cfName)
+    
+    def customFieldValues = customFieldObject.getValue(missue)
+    
+    customFieldValues.each { LazyLoadedOption it ->
+    def optionValue = it.getValue()
+    switch (optionValue){
+        case "Application":
+            
+        cfName = "Business Applications"
+               
+            break
+        case "Database":
+            
+        cfName = "Database"
+        
+            break
+        case "Network":
+            
+        cfName = "Network"
+            break
+        case "Other":
+             
+        cfName = "Other"
+            break
+    }
+}
 
+}
 
-//get the custom field with name Finance Applications
-log.info("cfName: " + cfName)
-if(cfName){
+if(cfName){ 
 
-def cf = ComponentAccessor.getCustomFieldManager().getCustomFieldObjectByName(cfName)
+  cf = customFieldManager.getCustomFieldObjectByName(cfName)
+  
+if(cf != "summary"){
 
-log.info("cf: " + cf)
-
-
-
-if(cf){
 Collection<ProjectComponent> issueComponents = new ArrayList<>();    
 StringBuilder stringBuilder = new StringBuilder()
+
 ((List<Option>) missue.getCustomFieldValue(cf)).each {
-     
-          
-     component = componentManager.findByComponentName(missue.projectObject.id, it.getValue()) 
-     log.info("In The Loop: " + component.getName())
+    
+     component = componentManager.findByComponentName(missue.projectObject.id, it.getValue())   
+    
+     log.info("Component Loop: " + component)
+    
      issueComponents.add(component)
-     stringBuilder.append(" : ").append(it.getValue())
-     
-         
- }    
+     stringBuilder.append(" : ").append(it.getValue())  
+}
+
+  
   def components = stringBuilder.toString()
+  log.info("Components: " + components)
   componentManager.updateIssueProjectComponents(missue,issueComponents)
   missue.setSummary(missue.summary + components)
   def reporter = missue.reporter
 
     issueManager.updateIssue(reporter, missue, EventDispatchOption.ISSUE_UPDATED , true)
-
-}   
 }
+}
+
+   
