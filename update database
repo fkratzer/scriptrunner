@@ -12,30 +12,49 @@ import java.text.SimpleDateFormat
 import java.sql.Timestamp
 import java.text.DateFormat
 import java.util.Date
-def datecreated = new Timestamp(new Date().getTime())
-def finapp = customFieldManager.getCustomFieldObject('Finance Applications')
-def usertype = customFieldManager.getCustomFieldObject('User Type')
-def user = customFieldManager.getCustomFieldObject('Requestor Name')
-MutableIssue issue = issue
+import org.apache.log4j.Logger
+import org.apache.log4j.Level
+
+
+def log = Logger.getLogger("com.acme.CreateSubtask")
+log.setLevel(Level.DEBUG)
+MutableIssue issue = issue as MutableIssue
+log.info ("Issue: " + issue)
+def finapp =  ComponentAccessor.getCustomFieldManager().getCustomFieldObjectByName("Finance Applications") as String;
+def usertype = ComponentAccessor.getCustomFieldManager().getCustomFieldObjectByName('User Type') as String;
+def appuser = ComponentAccessor.getCustomFieldManager().getCustomFieldObjectByName('Requestor Name') as String;
+def datecreated = issue.created
 def issuehold = issue.getKey()
+log.info ("finapp: " + finapp)
+log.info ("usertype: " + usertype)
+log.info ("appuser: " + appuser)
+log.info ("datecreated: " + datecreated)
+
 def driver = Class.forName('com.microsoft.sqlserver.jdbc.SQLServerDriver').newInstance() as Driver 
 
 def props = new Properties()
-props.setProperty("user", "devtools") 
-props.setProperty("password", "devtools")
-
-def conn = driver.connect("jdbc:sqlserver://localhost:5432/jira_6.4.6", props) 
+props.setProperty("username", "test_jira_servicedesk_writer") 
+props.setProperty("password", "r^M703yiek8CT@#*ZS")
+props.setProperty("database", "CIT_Jira_ServiceDesk_Test") 
+log.info ("Props: " + props)
+def conn = driver.connect("jdbc:sqlserver://lv-dwsql-dev01\\DW:1433;databasename=CIT_Jira_ServiceDesk_Test", props)
 def sql = new Sql(conn)
-
+log.info ("SQL: " + sql)
 try {
-        def data = [[issue:issuehold, user:user, finapp:finapp, usertype:usertype, datecreated:datecreated]]
+        def data = [[issue:issuehold, user:appuser, finapp:finapp, usertype:usertype]]
         // loop and insert data
-        data.each { dataItem ->
-            sql.execute("INSERT INTO <New Table> (Issue, Username, FinanceApp, UserType, DateCreated) values (:issue, :user, :finapp, :usertype, :datecreated)",
-                [issue:dataItem.issue, user:dataItem.user, finapp:dataItem.finapp, usertype:dataItem.usertype, datecreated:dataItem.datecreated]);
+       data.each { dataItem ->
+           sql.execute("INSERT INTO jira_AD_Sync (jiraIssue, userName, applicationName, userType) values (:issue, :user, :finapp, :usertype)",
+                [issue:dataItem.issue, user:dataItem.user, finapp:dataItem.finapp, usertype:dataItem.usertype]);    
+
+//        def data = [[issue:issuehold, user:appuser, finapp:finapp, usertype:usertype, datecreated:datecreated]]
+        // loop and insert data
+//       data.each { dataItem ->
+//          sql.execute("INSERT INTO jira_AD_Sync (jiraIssue, userName, applicationName, userType, createdDate) values (:issue, :user, :finapp, :usertype, :datecreated)",
+//                [issue:dataItem.issue, user:dataItem.user, finapp:dataItem.finapp, usertype:dataItem.usertype, datecreated:dataItem.datecreated]);
         }
     }
- finally {
+finally {
     sql.close()
-    conn.close()
+   conn.close()
 }
