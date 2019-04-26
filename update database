@@ -1,5 +1,5 @@
-import com.atlassian.jira.ComponentManager
 import com.atlassian.jira.component.ComponentAccessor
+import com.atlassian.jira.ComponentManager
 import com.atlassian.jira.issue.IssueManager
 import com.atlassian.jira.issue.Issue
 import com.atlassian.jira.issue.CustomFieldManager
@@ -14,21 +14,35 @@ import java.text.DateFormat
 import java.util.Date
 import org.apache.log4j.Logger
 import org.apache.log4j.Level
-
-
+import com.atlassian.jira.issue.customfields.manager.OptionsManager;
+import com.atlassian.jira.issue.customfields.option.Option;
+def customFieldManager = ComponentAccessor.getCustomFieldManager()
 def log = Logger.getLogger("com.acme.CreateSubtask")
 log.setLevel(Level.DEBUG)
 MutableIssue issue = issue as MutableIssue
 log.info ("Issue: " + issue)
-def finapp =  ComponentAccessor.getCustomFieldManager().getCustomFieldObjectByName("Finance Applications") as String;
-def usertype = ComponentAccessor.getCustomFieldManager().getCustomFieldObjectByName('User Type') as String;
-def appuser = ComponentAccessor.getCustomFieldManager().getCustomFieldObjectByName('Requestor Name') as String;
-def datecreated = issue.created
+
+def finapp = customFieldManager.getCustomFieldObjectByName("Finance Applications")
+String finappHold = issue.getCustomFieldValue(finapp) 
+String finappValue = finappHold.replaceAll("\\[|\\]", "")
+
+def usertype = customFieldManager.getCustomFieldObjectByName("User Type")
+String usertypeHold = issue.getCustomFieldValue(usertype) 
+String usertypeValue = usertypeHold.replaceAll("\\[|\\]", "")
+
+def appuser = customFieldManager.getCustomFieldObjectByName("Requestor Name")
+String appuserHold = issue.getCustomFieldValue(appuser)
+String appuserValue = appuserHold.replaceAll("\\[|\\]", "")
+appuserValue.replaceAll("\\[|\\]", "")
+
+
+String dateCreated = issue.created
+
 def issuehold = issue.getKey()
-log.info ("finapp: " + finapp)
-log.info ("usertype: " + usertype)
-log.info ("appuser: " + appuser)
-log.info ("datecreated: " + datecreated)
+log.info ("finapp: " + finappValue)
+log.info ("usertype: " + usertypeValue)
+log.info ("appuser: " + appuserValue)
+log.info ("datecreated: " + dateCreated)
 
 def driver = Class.forName('com.microsoft.sqlserver.jdbc.SQLServerDriver').newInstance() as Driver 
 
@@ -41,17 +55,13 @@ def conn = driver.connect("jdbc:sqlserver://lv-dwsql-dev01\\DW:1433;databasename
 def sql = new Sql(conn)
 log.info ("SQL: " + sql)
 try {
-        def data = [[issue:issuehold, user:appuser, finapp:finapp, usertype:usertype]]
+        def data = [[issue:issuehold, user:appuserValue, finapp:finappValue, usertype:usertypeValue, createdate:dateCreated]]
         // loop and insert data
        data.each { dataItem ->
-           sql.execute("INSERT INTO jira_AD_Sync (jiraIssue, userName, applicationName, userType) values (:issue, :user, :finapp, :usertype)",
-                [issue:dataItem.issue, user:dataItem.user, finapp:dataItem.finapp, usertype:dataItem.usertype]);    
+           sql.execute("INSERT INTO jira_AD_Sync (jiraIssue, userName, applicationName, userType, createdDate) values (:issue, :user, :finapp, :usertype, :createdate)",
+                [issue:dataItem.issue, user:dataItem.user, finapp:dataItem.finapp, usertype:dataItem.usertype, createdate:dataItem.createdate]);    
 
-//        def data = [[issue:issuehold, user:appuser, finapp:finapp, usertype:usertype, datecreated:datecreated]]
-        // loop and insert data
-//       data.each { dataItem ->
-//          sql.execute("INSERT INTO jira_AD_Sync (jiraIssue, userName, applicationName, userType, createdDate) values (:issue, :user, :finapp, :usertype, :datecreated)",
-//                [issue:dataItem.issue, user:dataItem.user, finapp:dataItem.finapp, usertype:dataItem.usertype, datecreated:dataItem.datecreated]);
+
         }
     }
 finally {
