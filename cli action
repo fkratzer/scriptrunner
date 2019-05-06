@@ -1,0 +1,5 @@
+CLI action
+Condition value: %original_summary%, Regex pattern: Finance Application Request - Decisions, Literal
+
+Product: ServiceDesk 
+Action: --action getIssueList --jql "key = %original_key%" --outputFormat "999" --columns "Requestor Name, User Type" --user "cit-automation" --password "changeme" --file "target/output/jiracliproject/decisions_%original_key%.csv" --debug
