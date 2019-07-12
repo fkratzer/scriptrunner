@@ -1,0 +1,40 @@
+import com.atlassian.jira.bc.issue.search.SearchService
+import com.atlassian.jira.component.ComponentAccessor
+import com.atlassian.jira.issue.Issue
+import com.atlassian.jira.web.bean.PagerFilter
+
+def PROJECT_KEY_TO = "BIZPROJ"
+
+// edit the JQL to return the issues you want to clone
+def jqlSearch = """
+project = "SFAPPS"
+"""
+
+def issueManager = ComponentAccessor.getIssueManager()
+def searchService = ComponentAccessor.getComponent(SearchService)
+def user = ComponentAccessor.getJiraAuthenticationContext().getLoggedInUser()
+def issueFactory = ComponentAccessor.getIssueFactory()
+
+
+def projectTo = ComponentAccessor.getProjectManager().getProjectByCurrentKey(PROJECT_KEY_TO)
+List<Issue> issuesFrom = []
+
+// get all the issues returned from the JQL
+SearchService.ParseResult parseResult =  searchService.parseQuery(user, jqlSearch)
+if (parseResult.isValid()) {
+    def searchResult = searchService.search(user, parseResult.getQuery(), PagerFilter.getUnlimitedFilter())
+    issuesFrom = searchResult.issues.collect { issueManager.getIssueObject(it.id) } as List <Issue>
+}
+
+// clone all the issues returned from the JQL to project with key PT
+issuesFrom?.each { it ->
+    def newIssue = issueFactory.cloneIssue(it)
+
+    // set the project and any field you want to have a different value
+    newIssue.setProjectObject(projectTo)
+
+    Map<String,Object> newIssueParams = ["issue":newIssue] as Map<String,Object>
+    issueManager.createIssueObject(user, newIssueParams)
+
+    log.info "Issue ${newIssue?.key} cloned to project ${projectTo.key}"
+}
