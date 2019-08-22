@@ -1,3 +1,4 @@
+import com.atlassian.jira.ComponentManager
 import com.atlassian.jira.component.ComponentAccessor
 import com.atlassian.jira.issue.fields.CustomField
 import com.atlassian.jira.user.ApplicationUser
@@ -6,54 +7,62 @@ import com.atlassian.jira.issue.comments.Comment
 import com.atlassian.jira.issue.IssueManager
 import com.atlassian.jira.issue.Issue
 import com.atlassian.jira.issue.MutableIssue
+import com.atlassian.jira.issue.link.IssueLink
+import com.atlassian.jira.issue.link.IssueLinkType
+import com.atlassian.jira.issue.link.IssueLinkManager
+import com.atlassian.jira.issue.link.IssueLinkTypeManager
 import com.atlassian.jira.event.type.EventDispatchOption
 import org.apache.log4j.Logger
 import org.apache.log4j.Level
  
 def log = Logger.getLogger("com.acme.createComment")
-log.setLevel(Level.INFO)
+log.setLevel(Level.DEBUG)
   
+def componentManager = ComponentManager.getInstance()
 
 def commentManager = ComponentAccessor.getCommentManager()
 def userManager = ComponentAccessor.getUserManager()
 
 IssueManager issueManager = ComponentAccessor.getIssueManager()
-Issue issue = event.issue
+Issue issue = event.issue as Issue     
+IssueLinkManager issueLinkManager = ComponentAccessor.getIssueLinkManager();
 MutableIssue missue = issue as MutableIssue;
 log.info issue
 
 def reporter = issue.getReporter() as ApplicationUser
 def comments = commentManager.getComments(issue)
 def mentioned = userManager.getUserByKey("secops").key 
-Integer results = 0
+def commentcontains = mentioned as String
+String commenthold = "" as String
 // check that mention has not already been made in comments to eliminate multiple tickets
-
+Integer results = 0
 if (comments)
+
 {   
-
     comments.each { 
-        String commentValue = comments.body;
-        if (commentValue.contains(mentioned)){
+        commenthold = comments.body as String
+        if (commenthold.contains(commentcontains))
+        {
+        log.info "Comment: " + commenthold
+        log.info "Search Phrase: " + commentcontains
         results = results + 1
-        }
-        
-        
+        log.info "Results: " + results
+        } 
+        commenthold = ""
     }      
-   log.info "Results: " + results
+   
 }
- 
-
-
+commenthold = "" 
 def author = comments.last().authorApplicationUser.getUsername() 
 log.info "Comment made by: " + author
-def commenthold = comments.last().getBody() as String
+commenthold = comments.last().getBody() as String
 
+log.info "Comment: " + commenthold as String
 
-log.info "Comment: " + commenthold
-
-if (commenthold.contains(mentioned) && results < 2)
+//if (commenthold.contains(mentioned) && results < 2)
+if (commenthold.contains(mentioned) && results < 1)
 {
-    log.info "Made It"
+    log.info "Results :" + results
 
  // Create Issue in INFOSEC
 def PROJECT_KEY_TO = "INFOSEC"
@@ -63,16 +72,25 @@ def projectTo = ComponentAccessor.getProjectManager().getProjectByCurrentKey(PRO
 def newIssue = issueFactory.cloneIssue(issue)
 newIssue.setProjectObject(projectTo) 
 newIssue.setSummary("Cloned from: " + missue.getKey() + " " + missue.summary)
-newIssue.setAssigneeId(mentioned)    
+log.info "Cloned from: " + missue.getKey() + " " + missue.summary
+newIssue.setAssigneeId(mentioned) 
+
 Map<String,Object> newIssueParams = ["issue":newIssue] as Map<String,Object>
-    issueManager.createIssueObject(author, newIssueParams)
-    
-    
+issueManager.createIssueObject(author, newIssueParams)  
+   
+     
     def newComment = "Hello [~$author] new Issue " + newIssue + " has automatically been raised in " + projectTo + "."
     log.info "New Comment: " + newComment 
     
-    commentManager.create(missue, mentioned, newComment, true)
-    issueManager.updateIssue(reporter, missue, EventDispatchOption.ISSUE_UPDATED , true)
-   
+    commentManager.create(missue, reporter, newComment, true)
+    log.info "Reporter: " + reporter
+    log.info "Author: " + author 
+    issueManager.updateIssue(reporter, missue, EventDispatchOption.ISSUE_UPDATED, true)
+       
+
+    issueLinkManager.createIssueLink(missue.getId(), newIssue.getId(), 10141, 1, reporter);
+
 }
+
+
 return;
