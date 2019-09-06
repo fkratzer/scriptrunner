@@ -12,6 +12,9 @@ import com.atlassian.jira.issue.link.IssueLinkType
 import com.atlassian.jira.issue.link.IssueLinkManager
 import com.atlassian.jira.issue.link.IssueLinkTypeManager
 import com.atlassian.jira.event.type.EventDispatchOption
+import com.atlassian.jira.issue.search.SearchException
+import com.atlassian.jira.bc.issue.search.SearchService
+import com.atlassian.jira.issue.search.SearchResults
 import org.apache.log4j.Logger
 import org.apache.log4j.Level
  
@@ -20,7 +23,6 @@ log.setLevel(Level.DEBUG)
   
 def componentManager = ComponentManager.getInstance()
 
-def commentManager = ComponentAccessor.getCommentManager()
 def userManager = ComponentAccessor.getUserManager()
 
 IssueManager issueManager = ComponentAccessor.getIssueManager()
@@ -30,39 +32,38 @@ MutableIssue missue = issue as MutableIssue;
 log.info issue
 
 def reporter = issue.getReporter() as ApplicationUser
-def comments = commentManager.getComments(issue)
-def mentioned = userManager.getUserByKey("secops").key 
-def commentcontains = mentioned as String
-String commenthold = "" as String
-// check that mention has not already been made in comments to eliminate multiple tickets
-Integer results = 0
-if (comments)
+def mentioned = userManager.getUserByKey("secops").key
+def searchString = mentioned as String
 
-{   
-    comments.each { 
-        commenthold = comments.body as String
-        if (commenthold.contains(commentcontains))
-        {
-        log.info "Comment: " + commenthold
-        log.info "Search Phrase: " + commentcontains
+log.info "Search Phrase: " + mentioned
+String commenthold = "" as String
+Integer results = 0
+// check that mention has not already been made in comments to eliminate multiple tickets
+	CommentManager commentManager = ComponentAccessor.commentManager
+    def comments = commentManager.getComments(issue)
+if (comments){
+    log.info "Results: " + comments
+    comments.each { comment ->
+       
+        log.info "Comment: " + comment.body
+        if (comment.body.contains(searchString)){
         results = results + 1
-        log.info "Results: " + results
-        } 
-        commenthold = ""
-    }      
-   
+    	}
+	}
+
 }
-commenthold = "" 
+     
+log.info "Results: " + results
+
 def author = comments.last().authorApplicationUser.getUsername() 
 log.info "Comment made by: " + author
 commenthold = comments.last().getBody() as String
 
 log.info "Comment: " + commenthold as String
 
-//if (commenthold.contains(mentioned) && results < 2)
-if (commenthold.contains(mentioned) && results < 1)
+
+if (commenthold.contains(mentioned) && results == 1)
 {
-    log.info "Results :" + results
 
  // Create Issue in INFOSEC
 def PROJECT_KEY_TO = "INFOSEC"
