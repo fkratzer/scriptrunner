@@ -1,0 +1,73 @@
+import com.atlassian.jira.ComponentManager
+import com.atlassian.jira.component.ComponentAccessor
+import com.atlassian.jira.issue.fields.CustomField
+import com.atlassian.jira.issue.CustomFieldManager
+import com.atlassian.jira.user.ApplicationUser
+import com.atlassian.jira.issue.comments.CommentManager
+import com.atlassian.jira.issue.comments.Comment
+import com.atlassian.jira.issue.IssueManager
+import com.atlassian.jira.issue.Issue
+import com.atlassian.jira.issue.MutableIssue
+import com.atlassian.jira.issue.link.IssueLink
+import com.atlassian.jira.issue.link.IssueLinkType
+import com.atlassian.jira.issue.link.IssueLinkManager
+import com.atlassian.jira.issue.link.IssueLinkTypeManager
+import com.atlassian.jira.event.type.EventDispatchOption
+import com.atlassian.jira.issue.search.SearchException
+import com.atlassian.jira.bc.issue.search.SearchService
+import com.atlassian.jira.issue.search.SearchResults
+import com.atlassian.jira.issue.customfields.manager.OptionsManager
+import com.atlassian.jira.issue.customfields.option.Option
+import org.apache.log4j.Logger
+import org.apache.log4j.Level
+ 
+def log = Logger.getLogger("com.acme.createComment")
+log.setLevel(Level.DEBUG)
+  
+def componentManager = ComponentManager.getInstance()
+def customFieldManager = ComponentAccessor.getCustomFieldManager()
+def userManager = ComponentAccessor.getUserManager()
+def issueManager = ComponentAccessor.getIssueManager()
+  
+IssueLinkManager issueLinkManager = ComponentAccessor.getIssueLinkManager();
+MutableIssue missue = issue as MutableIssue;
+log.info issue
+
+def reporter = issue.getReporter() as ApplicationUser
+def PROJECT_KEY_TO = ""
+def issueFactory = ComponentAccessor.getIssueFactory() 
+def newIssue = ""
+def cfSelect = ComponentAccessor.customFieldManager.getCustomFieldObjectByName("Access Needed")
+def cfConfig = cfSelect.getRelevantConfig(issue)
+def value
+// Jenkins
+value = ComponentAccessor.optionsManager.getOptions(cfConfig)?.find {
+    it.toString() == 'Jenkins'
+}
+log.info value
+if (value.toString() == 'Jenkins')
+{ 
+    log.info "made it!"
+    // Create Issue in BUILDREL}
+PROJECT_KEY_TO = "BUILDREL" 
+def issueTypeID = "28"
+def projectTo = ComponentAccessor.getProjectManager().getProjectByCurrentKey(PROJECT_KEY_TO)      
+newIssue = issueFactory.cloneIssue(issue)
+newIssue.setProjectObject(projectTo) 
+newIssue.setIssueTypeId(issueTypeID)
+newIssue.setSummary("Cloned from: " + missue.getKey() + " " + missue.summary)
+log.info "Cloned from: " + missue.getKey() + " " + missue.summary
+def assignee = userManager.getUserByKey("buildrel-triage") as String
+newIssue.setAssigneeId(assignee) 
+Map<String,Object> newIssueParams = ["issue":newIssue] as Map<String,Object>
+issueManager.createIssueObject(reporter, newIssueParams)    
+ CommentManager commentManager = ComponentAccessor.commentManager    
+    def comments = commentManager.getComments(issue)    
+    def newComment = "Hello [~$reporter] new Issue " + newIssue + " has automatically been raised in " + projectTo + "."
+    log.info "New Comment: " + newComment     
+    commentManager.create(missue, reporter, newComment, true)
+    log.info "Reporter: " + reporter
+    issueManager.updateIssue(reporter, missue, EventDispatchOption.ISSUE_UPDATED, true)      
+    issueLinkManager.createIssueLink(missue.getId(), newIssue.getId(), 10141, 1, reporter);
+     
+}
