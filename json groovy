@@ -1,0 +1,35 @@
+import com.atlassian.jira.component.ComponentAccessor
+import com.atlassian.jira.event.type.EventDispatchOption
+import com.atlassian.jira.issue.CustomFieldManager
+import com.atlassian.jira.issue.UpdateIssueRequest
+import groovy.json.JsonSlurper
+import org.apache.log4j.Logger
+import org.apache.log4j.Level
+
+
+def returnhold = ""
+def log = Logger.getLogger("com.acme.CreateSubtask")
+log.setLevel(Level.DEBUG)
+
+def jsonSlurper = new JsonSlurper()
+
+CustomFieldManager customFieldManager = ComponentAccessor.getCustomFieldManager()
+def field1 = customFieldManager.getCustomFieldObjectByName("Customer Info")
+
+String field1Value = issue.getCustomFieldValue(field1)
+def parsedJson = jsonSlurper.parseText(field1Value) as List
+
+log.debug  "Customer Value: " + parsedJson.getAt('selectedOptionValue')[0]
+log.debug  "Account Value: " + parsedJson.getAt('selectedOptionValue')[1]
+log.debug  "Cluster Value: " + parsedJson.getAt('selectedOptionValue')[2]
+
+String customerhold = parsedJson.getAt('selectedOptionValue')[0]
+String accounthold = parsedJson.getAt('selectedOptionValue')[1]
+String clusterhold = parsedJson.getAt('selectedOptionValue')[2]
+
+//levelName:customer
+//levelName:account
+//levelName:cluster
+//selectedOptionValue
+
+issue.setSummary(customerhold + ' | ' + accounthold + ' | ' + clusterhold)
