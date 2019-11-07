@@ -1,0 +1,205 @@
+import com.atlassian.jira.ComponentManager
+import com.atlassian.jira.component.ComponentAccessor
+import com.atlassian.jira.issue.fields.CustomField
+import com.atlassian.jira.issue.CustomFieldManager
+import com.atlassian.jira.user.ApplicationUser
+import com.atlassian.jira.issue.comments.CommentManager
+import com.atlassian.jira.issue.comments.Comment
+import com.atlassian.jira.issue.IssueManager
+import com.atlassian.jira.issue.Issue
+import com.atlassian.jira.issue.MutableIssue
+import com.atlassian.jira.issue.link.IssueLink
+import com.atlassian.jira.issue.link.IssueLinkType
+import com.atlassian.jira.issue.link.IssueLinkManager
+import com.atlassian.jira.issue.link.IssueLinkTypeManager
+import com.atlassian.jira.event.type.EventDispatchOption
+import com.atlassian.jira.issue.search.SearchException
+import com.atlassian.jira.bc.issue.search.SearchService
+import com.atlassian.jira.issue.search.SearchResults
+import com.atlassian.jira.issue.customfields.manager.OptionsManager
+import com.atlassian.jira.issue.customfields.option.Option
+import com.atlassian.jira.issue.ModifiedValue
+import com.atlassian.jira.issue.util.DefaultIssueChangeHolder
+import org.apache.log4j.Logger
+import org.apache.log4j.Level
+ 
+def log = Logger.getLogger("com.acme.createComment")
+log.setLevel(Level.DEBUG)
+  
+def componentManager = ComponentManager.getInstance()
+def customFieldManager = ComponentAccessor.getCustomFieldManager()
+def userManager = ComponentAccessor.getUserManager()
+def issueManager = ComponentAccessor.getIssueManager()
+  
+IssueLinkManager issueLinkManager = ComponentAccessor.getIssueLinkManager();
+MutableIssue missue = issue as MutableIssue;
+log.info issue
+final String epicLinkFieldName = "Epic Link"
+def reporter = issue.getReporter() as ApplicationUser
+def currentuserhold = reporter as String
+def currentUser = userManager.getUserByKey(currentuserhold)
+def PROJECT_KEY_TO = ""
+def issueFactory = ComponentAccessor.getIssueFactory() 
+def newIssue = ""
+
+
+def issueTypeID = ''
+def projectTo = ''
+def assignee = ''
+def epic = ''
+def targetField = ''
+
+def cfSelect = ComponentAccessor.customFieldManager.getCustomFieldObjectByName("Access Needed")
+def cfConfig = cfSelect.getRelevantConfig(issue)
+def fieldConfig = cfSelect.getRelevantConfig(issue)
+def selectedOption = issue.getCustomFieldValue(cfSelect)
+def indexOf =  ComponentAccessor.optionsManager.getOptions(fieldConfig).indexOf(selectedOption)
+List<Option> options = (List<Option>)cfSelect.getValue(issue);
+for (int i = 0; i < options.size(); i++) {
+log.info options[i].getValue() 
+// Jenkins
+
+if (options[i].getValue() == 'Jenkins')
+{ 
+// Create Issue in BUILDREL}
+PROJECT_KEY_TO = "BUILDREL" 
+issueTypeID = "28"
+projectTo = ComponentAccessor.getProjectManager().getProjectByCurrentKey(PROJECT_KEY_TO)      
+newIssue = issueFactory.cloneIssue(issue)
+newIssue.setProjectObject(projectTo) 
+newIssue.setIssueTypeId(issueTypeID)  
+newIssue.setSummary("Jenkins request cloned from: " + missue.getKey() + " " + missue.summary)
+log.info "Jenkins request cloned from: " + missue.getKey() + " " + missue.summary
+    
+assignee = userManager.getUserByKey("buildrel-triage") as String
+     
+    
+newIssue.setAssigneeId(assignee) 
+Map<String,Object> newIssueParams = ["issue":newIssue] as Map<String,Object>
+issueManager.createIssueObject(reporter, newIssueParams)  
+    
+final String issueKey = newIssue.getKey()     
+    epic = issueManager.getIssueByCurrentKey(issue.getKey())
+    targetField = ComponentAccessor.customFieldManager.getCustomFieldObjects(newIssue).findByName('Epic Link') 
+    targetField.updateValue(null, newIssue, new ModifiedValue(issue.getCustomFieldValue(targetField), epic), new DefaultIssueChangeHolder())
+    
+    issueManager.updateIssue(reporter, missue, EventDispatchOption.ISSUE_UPDATED, true)      
+    issueLinkManager.createIssueLink(missue.getId(), newIssue.getId(), 10141, 1, reporter);
+    
+}
+
+// Grafana Pulse Dashboard
+
+if (options[i].getValue() == 'Grafana Pulse Dashboard')
+{ 
+
+// Create Issue in BUILDREL}
+PROJECT_KEY_TO = "BUILDREL" 
+issueTypeID = "28"
+projectTo = ComponentAccessor.getProjectManager().getProjectByCurrentKey(PROJECT_KEY_TO)      
+newIssue = issueFactory.cloneIssue(issue)
+newIssue.setProjectObject(projectTo) 
+newIssue.setIssueTypeId(issueTypeID)  
+newIssue.setSummary("Grafana Pulse Dashboard request cloned from: " + missue.getKey() + " " + missue.summary)
+log.info "Grafana Pulse Dashboard request cloned from: " + missue.getKey() + " " + missue.summary
+    
+assignee = userManager.getUserByKey("buildrel-triage") as String
+newIssue.setAssigneeId(assignee) 
+Map<String,Object> newIssueParams = ["issue":newIssue] as Map<String,Object>
+issueManager.createIssueObject(reporter, newIssueParams)  
+    
+final String issueKey = newIssue.getKey()     
+    epic = issueManager.getIssueByCurrentKey(issue.getKey())
+    targetField = ComponentAccessor.customFieldManager.getCustomFieldObjects(newIssue).findByName('Epic Link') 
+    targetField.updateValue(null, newIssue, new ModifiedValue(issue.getCustomFieldValue(targetField), epic), new DefaultIssueChangeHolder())
+    
+    issueManager.updateIssue(reporter, missue, EventDispatchOption.ISSUE_UPDATED, true)      
+    issueLinkManager.createIssueLink(missue.getId(), newIssue.getId(), 10141, 1, reporter);
+    
+
+}
+
+// Blackduck Pulse Dashboard
+if (options[i].getValue() == 'Blackduck')
+{ 
+// Create Issue in BUILDREL}
+PROJECT_KEY_TO = "BUILDREL" 
+issueTypeID = "28"
+projectTo = ComponentAccessor.getProjectManager().getProjectByCurrentKey(PROJECT_KEY_TO)      
+newIssue = issueFactory.cloneIssue(issue)
+newIssue.setProjectObject(projectTo) 
+newIssue.setIssueTypeId(issueTypeID)  
+newIssue.setSummary("Blackduck request cloned from: " + missue.getKey() + " " + missue.summary)
+log.info "Blackduck request cloned from: " + missue.getKey() + " " + missue.summary
+    
+assignee = userManager.getUserByKey("buildrel-triage") as String
+newIssue.setAssigneeId(assignee) 
+Map<String,Object> newIssueParams = ["issue":newIssue] as Map<String,Object>
+issueManager.createIssueObject(reporter, newIssueParams)  
+    
+final String issueKey = newIssue.getKey()     
+    epic = issueManager.getIssueByCurrentKey(issue.getKey())
+    targetField = ComponentAccessor.customFieldManager.getCustomFieldObjects(newIssue).findByName('Epic Link') 
+    targetField.updateValue(null, newIssue, new ModifiedValue(issue.getCustomFieldValue(targetField), epic), new DefaultIssueChangeHolder())
+    
+    issueManager.updateIssue(reporter, missue, EventDispatchOption.ISSUE_UPDATED, true)      
+    issueLinkManager.createIssueLink(missue.getId(), newIssue.getId(), 10141, 1, reporter);
+    
+
+}
+// AWS Test Lab
+if (options[i].getValue() == 'AWS Test Lab')
+{ 
+// Create Issue in HELP}
+PROJECT_KEY_TO = "HELP" 
+issueTypeID = "18"
+projectTo = ComponentAccessor.getProjectManager().getProjectByCurrentKey(PROJECT_KEY_TO)      
+newIssue = issueFactory.cloneIssue(issue)
+newIssue.setProjectObject(projectTo) 
+newIssue.setIssueTypeId(issueTypeID)  
+newIssue.setSummary("AWS Test Lab request cloned from: " + missue.getKey() + " " + missue.summary)
+log.info "AWS Test Lab request cloned from: " + missue.getKey() + " " + missue.summary
+    
+assignee = userManager.getUserByKey("citse") as String
+newIssue.setAssigneeId(assignee) 
+Map<String,Object> newIssueParams = ["issue":newIssue] as Map<String,Object>
+issueManager.createIssueObject(reporter, newIssueParams)  
+    
+final String issueKey = newIssue.getKey()     
+    epic = issueManager.getIssueByCurrentKey(issue.getKey())
+    targetField = ComponentAccessor.customFieldManager.getCustomFieldObjects(newIssue).findByName('Epic Link') 
+    targetField.updateValue(null, newIssue, new ModifiedValue(issue.getCustomFieldValue(targetField), epic), new DefaultIssueChangeHolder())
+    
+    issueManager.updateIssue(reporter, missue, EventDispatchOption.ISSUE_UPDATED, true)      
+    issueLinkManager.createIssueLink(missue.getId(), newIssue.getId(), 10141, 1, reporter);
+    
+
+}
+// Mailing Groups
+if (options[i].getValue() == 'Mailing Groups')
+{ 
+// Create Issue in HELP}
+PROJECT_KEY_TO = "HELP" 
+issueTypeID = "18"
+projectTo = ComponentAccessor.getProjectManager().getProjectByCurrentKey(PROJECT_KEY_TO)      
+newIssue = issueFactory.cloneIssue(issue)
+newIssue.setProjectObject(projectTo) 
+newIssue.setIssueTypeId(issueTypeID)  
+newIssue.setSummary("Mailing Groups request cloned from: " + missue.getKey() + " " + missue.summary)
+log.info "Mailing Groups request cloned from: " + missue.getKey() + " " + missue.summary
+    
+assignee = userManager.getUserByKey("citse") as String
+newIssue.setAssigneeId(assignee) 
+Map<String,Object> newIssueParams = ["issue":newIssue] as Map<String,Object>
+issueManager.createIssueObject(reporter, newIssueParams)  
+    
+final String issueKey = newIssue.getKey()     
+    epic = issueManager.getIssueByCurrentKey(issue.getKey())
+    targetField = ComponentAccessor.customFieldManager.getCustomFieldObjects(newIssue).findByName('Epic Link') 
+    targetField.updateValue(null, newIssue, new ModifiedValue(issue.getCustomFieldValue(targetField), epic), new DefaultIssueChangeHolder())
+    
+    issueManager.updateIssue(reporter, missue, EventDispatchOption.ISSUE_UPDATED, true)      
+    issueLinkManager.createIssueLink(missue.getId(), newIssue.getId(), 10141, 1, reporter);
+    
+}
+}
