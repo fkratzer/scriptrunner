@@ -9,3 +9,70 @@ def defaultValue = """Please provide the following information, in order for NOC
 if (! underlyingIssue?.description) { 
     desc.setFormValue(defaultValue)
 }
+def desc = getFieldById("description")
+if(issueContext.issueType.name == "Bug" || issueContext.issueType.name == "Bug-task"){
+def defaultValue = """h5. Environment / Pre-Conditions:
+* N/A
+
+h5. Steps to reproduce:
+# N/A
+
+h5. Expected result:
+* N/A
+
+h5. Actual result:
+* N/A
+
+h5. Affected test cases:
+* N/A
+
+h5. Logs / Screenshots:
+* N/A""" .replaceAll(/    /, '')
+if (! underlyingIssue?.description) { 
+    desc.setFormValue(defaultValue)
+}}
+if(issueContext.issueType.name == "Epic"){
+def defaultValue = """h5. BUSINESS OBJECTIVE:
+* N/A
+
+h5. SOLUTION:
+* N/A
+
+h5. DETAILED REQUIREMENTS:
+* N/A
+
+h5. PERFORMANCE/SCALE:
+* N/A
+
+h5. SUPPORTABILITY:
+* N/A
+
+h5. OPERABILITY/MAINTAINABILITY:
+* N/A
+
+h5. SECURITY:
+* N/A
+
+h5. FUTURE CONSIDERATIONS:
+* N/A""" .replaceAll(/    /, '')
+if (! underlyingIssue?.description) { 
+    desc.setFormValue(defaultValue)
+}
+
+}
+if(issueContext.issueType.name == "Story"){
+def defaultValue = """h5. User Story Requirement:
+* N/A
+h5. Acceptance Criteria:
+* N/A""" .replaceAll(/    /, '')
+if (! underlyingIssue?.description) { 
+    desc.setFormValue(defaultValue)
+}}
+if(issueContext.issueType.name == "Spike"){
+def defaultValue = """h5. Question / What do we want know?
+* N/A
+h5. Answer / Conclusion:
+* N/A""" .replaceAll(/    /, '')
+if (! underlyingIssue?.description) { 
+    desc.setFormValue(defaultValue)
+}}
