@@ -1,0 +1,74 @@
+import com.onresolve.scriptrunner.runner.rest.common.CustomEndpointDelegate
+import groovy.transform.BaseScript
+import com.atlassian.jira.bc.issue.search.SearchService
+import com.atlassian.jira.component.ComponentAccessor
+import com.atlassian.jira.issue.search.SearchException
+import com.atlassian.jira.web.bean.PagerFilter
+import com.atlassian.jira.issue.Issue
+import org.springframework.util.FileCopyUtils
+import com.atlassian.jira.issue.search.SearchProvider
+import com.atlassian.jira.jql.parser.JqlQueryParser
+import com.atlassian.jira.web.bean.*
+import com.atlassian.plugin.web.api.model.WebFragmentBuilder
+
+
+import org.apache.log4j.Level
+import org.apache.log4j.Logger
+def mylog = Logger.getLogger("com.acme.workflows")
+mylog.setLevel(Level.DEBUG)
+
+
+// run the search
+
+final String jqlSearch = "project = 'Cloudmark Gateway' AND createdDate >= '2009/01/01' AND createdDate <= '2009/12/31' and assignee is EMPTY and issuetype = Bug and resolution = Fixed" // the jql query you want to search with
+
+def user = ComponentAccessor.jiraAuthenticationContext.loggedInUser
+def searchService = ComponentAccessor.getComponentOfType(SearchService)
+SearchService.ParseResult parseResult = searchService.parseQuery(user, jqlSearch)
+//log.warn(user)
+
+def pdfApiClass = this.class.forName('com.midori.jira.plugin.pdfview.api.PdfApi', true, ComponentAccessor.pluginAccessor.classLoader)
+def pdfApi = ComponentAccessor.getOSGiComponentInstanceOfType(pdfApiClass)
+def templateName = "new-issue-fo.vm"
+def pdfResult = ""
+def filePath = ""
+File file = ""
+
+if (parseResult.isValid()) {
+    try {
+        
+        def results = searchService.search(user, parseResult.query, PagerFilter.unlimitedFilter)
+        def issues = results.results
+        if (issues) {
+            // PDF configuration
+
+// do whatever you want to do with the PDF
+// (in this example, we just write it to a file with jirakey.pdf")
+
+        issues.each {
+        pdfResult = pdfApi.getPdf(templateName, it.summary, it, [:])
+        
+            file = new File("/tmp/gw/${it.key}.pdf")
+            if(file.exists()){
+        
+   try {
+            
+        
+        FileCopyUtils.copy(pdfResult.bytes, new File("/tmp/gw/${it.key}.pdf"))
+          //  log.warn(title)
+       }
+ 
+	catch (SearchException e) {
+        e.printStackTrace()
+    }    
+            }
+        }
+    } 
+  }
+	catch (SearchException e) {
+        e.printStackTrace()
+    }
+} else {
+    log.warn("Invalid query")
+    return null
+}
