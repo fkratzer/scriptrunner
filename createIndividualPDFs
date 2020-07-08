@@ -32,7 +32,7 @@ def pdfApi = ComponentAccessor.getOSGiComponentInstanceOfType(pdfApiClass)
 def templateName = "new-issue-fo.vm"
 def pdfResult = ""
 def filePath = ""
-File file = ""
+
 
 if (parseResult.isValid()) {
     try {
@@ -48,7 +48,7 @@ if (parseResult.isValid()) {
         issues.each {
         pdfResult = pdfApi.getPdf(templateName, it.summary, it, [:])
         
-            file = new File("/tmp/gw/${it.key}.pdf")
+            File file = new File("/tmp/gw/${it.key}.pdf")
             if(file.exists()){
         
    try {
