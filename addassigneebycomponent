@@ -1,0 +1,31 @@
+import com.atlassian.crowd.embedded.api.User
+import com.atlassian.jira.bc.project.component.ProjectComponent
+import com.atlassian.jira.component.ComponentAccessor
+import com.atlassian.jira.event.type.EventDispatchOption
+import com.atlassian.jira.issue.Issue
+import com.atlassian.jira.issue.IssueManager
+import com.atlassian.jira.issue.MutableIssue
+import com.atlassian.jira.util.collect.MapBuilder;
+import java.util.List;
+import org.apache.log4j.Level
+import org.apache.log4j.Logger
+
+def mylog = Logger.getLogger("com.acme.workflows")
+mylog.setLevel(Level.DEBUG)
+
+
+def issue = event.issue
+def reporter = issue.reporter
+def user = event.getUser()
+
+def missue = issue as MutableIssue
+IssueManager issueManager = ComponentAccessor.getIssueManager()
+def components = issue.components.toList()
+mylog.info(components)
+if(components.name.contains("Commercial Risk : Permanent Exception") || components.name.contains("Commercial Risk : Temporary Exception")){
+
+    mylog.info("made it")
+
+missue.setAssignee(reporter)
+ issueManager.updateIssue(user, missue, EventDispatchOption.DO_NOT_DISPATCH, false)
+}
