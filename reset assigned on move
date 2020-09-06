@@ -1,0 +1,21 @@
+import com.atlassian.jira.bc.issue.IssueService
+import com.atlassian.jira.component.ComponentAccessor
+import com.atlassian.jira.issue.link.IssueLinkTypeManager
+import com.atlassian.jira.issue.IssueInputParameters
+import com.atlassian.jira.issue.IssueManager
+import com.atlassian.jira.issue.Issue
+
+
+IssueService issueService = ComponentAccessor.getComponent(IssueService);
+def user = ComponentAccessor.getJiraAuthenticationContext().loggedInUser
+
+IssueInputParameters issueInputParameters = issueService.newIssueInputParameters()
+issueInputParameters.setAssigneeId('-1')
+def issue = event.issue
+def update = issueService.validateUpdate(user, issue.id, issueInputParameters)
+
+
+
+if (update.isValid()) {
+          issueService.update(user, update)
+}
