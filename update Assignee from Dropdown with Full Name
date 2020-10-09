@@ -1,0 +1,40 @@
+import com.atlassian.jira.issue.CustomFieldManager;
+import com.atlassian.jira.issue.Issue;
+import com.atlassian.jira.component.ComponentAccessor;
+import com.atlassian.jira.issue.MutableIssue;
+import com.atlassian.jira.issue.comments.CommentManager;
+import com.atlassian.jira.issue.fields.CustomField;
+import com.atlassian.jira.util.ImportUtils;
+import com.atlassian.jira.event.type.EventDispatchOption
+import com.atlassian.jira.user.ApplicationUser
+import com.atlassian.jira.user.util.UserManager;
+import com.atlassian.crowd.embedded.api.User;
+import com.atlassian.jira.user.UserUtils
+import com.atlassian.jira.config.PriorityManager
+//Line added 1 
+import com.atlassian.jira.issue.customfields.option.LazyLoadedOption
+
+def String m_assignee = 'Unassigned';
+def cfIssueType = issue.issueType.name;
+def cfLoc = ComponentAccessor.getCustomFieldManager().getCustomFieldObjectByName("Escalate To");
+//Line added 2 (just added "as LazyLoadedOption")
+def first = issue.getCustomFieldValue(cfLoc) as LazyLoadedOption;
+
+switch(first){
+    case "CIT Applications":
+        m_assignee = 'CIT Applications';
+        break
+    case "CIT Service Engineering":
+        m_assignee = 'citse';
+        break
+    case "CIT Network Engineering":
+        m_assignee = 'citne';
+        break
+    case "CIT Client Service":
+        m_assignee = 'citcs';
+        break    
+    default:
+        m_assignee = 'CIT Applications';
+        break
+}
+issue.setAssigneeId(m_assignee);
