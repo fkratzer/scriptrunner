@@ -1,0 +1,56 @@
+import com.atlassian.jira.component.ComponentAccessor;
+import com.atlassian.jira.issue.CustomFieldManager;
+import com.atlassian.jira.issue.fields.CustomField;
+import com.atlassian.jira.issue.IssueManager;
+import com.atlassian.jira.issue.Issue;
+import com.atlassian.jira.issue.MutableIssue
+import com.atlassian.jira.project.version.Version
+import com.atlassian.jira.project.version.VersionManager
+import com.atlassian.jira.event.type.EventDispatchOption
+
+import org.apache.log4j.Level
+import org.apache.log4j.Logger
+def log = Logger.getLogger("com.acme.workflows")
+log.setLevel(Level.DEBUG)
+
+def issue = event.issue as Issue
+IssueManager issueManager = ComponentAccessor.getIssueManager();
+MutableIssue mutableIssue = issueManager.getIssueObject(event.issue.id);
+
+def versionManager = ComponentAccessor.getVersionManager();
+def project = issue.getProjectObject()
+log.debug "Project:" + project
+def currentUserObj = ComponentAccessor.getJiraAuthenticationContext().getLoggedInUser()
+def customFieldManager = ComponentAccessor.getCustomFieldManager()
+
+
+
+def cField = customFieldManager.getCustomFieldObjectByName("Customer Info")
+def cFieldValue = issue.getCustomFieldValue(cField)
+def val = cFieldValue
+def pipe = val.indexOf("|") 
+
+if(pipe >= 0){
+      
+def aversion = val.substring(pipe + 1).trim()
+def affectsver = aversion.substring(0, aversion.indexOf('|'))
+affectsver = affectsver.trim()   
+ 
+log.debug "Version from Cluster Field: " + affectsver
+
+if (affectsver != "N/A") {
+   
+
+def version = versionManager.getVersion(issue.getProjectObject().getId(), affectsver)
+    
+if (version){ 
+
+mutableIssue.setAffectedVersions([version])  
+    
+log.debug "New Affects Version: " + version
+    }   
+
+    
+issueManager.updateIssue(currentUserObj, mutableIssue, EventDispatchOption.ISSUE_UPDATED, false)
+}
+}
