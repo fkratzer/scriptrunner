@@ -1,0 +1,18 @@
+import com.atlassian.jira.component.ComponentAccessor
+import com.atlassian.jira.issue.IssueManager
+import com.atlassian.jira.issue.MutableIssue
+import com.atlassian.jira.issue.comments.Comment
+import com.atlassian.jira.issue.comments.CommentManager
+
+String issueKey = 'PROD-363632'
+
+IssueManager issueManager = ComponentAccessor.issueManager
+CommentManager commentManager = ComponentAccessor.commentManager
+
+MutableIssue issue = issueManager.getIssueObject(issueKey)
+List<Comment> comments = commentManager.getComments(issue)
+comments.each {comment ->
+   
+        commentManager.delete(comment)
+    
+}
