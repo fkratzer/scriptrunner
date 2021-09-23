@@ -1,0 +1,107 @@
+package eventim.scripts
+
+import com.atlassian.jira.component.ComponentAccessor
+import com.atlassian.jira.plugin.workflow.AbstractWorkflowModuleDescriptor
+import com.atlassian.jira.workflow.JiraWorkflow
+import com.atlassian.jira.workflow.WorkflowManager
+import com.atlassian.plugin.PluginAccessor
+
+import java.util.regex.Matcher 
+
+String appKey = "com.innovalog.jmwe.jira-misc-workflow-extensions"
+
+
+String result = ""
+
+PluginAccessor pluginAccessor = ComponentAccessor.getPluginAccessor()
+WorkflowManager workflowManager = ComponentAccessor.getWorkflowManager()
+def p = pluginAccessor.getPlugin(appKey)
+if (p) {
+    def modules = p.getModuleDescriptors()
+    def implementationClasses = modules.findAll{
+        it instanceof AbstractWorkflowModuleDescriptor
+    }.collect{
+        it as AbstractWorkflowModuleDescriptor
+    }*.implementationClass.name
+    def searchText = implementationClasses.join('|')
+    log.debug "searchText: $searchText"
+    Collection<JiraWorkflow> workflows = workflowManager.getWorkflows()
+
+    result = "Workflow;Function;Type;Action;Source-Step<br>"
+
+    workflows.each{workflow ->
+        def workflowXml = workflow.descriptor.asXML()
+        Matcher m = workflowXml =~ /${searchText}/
+        if (m.find()) {
+            String workflow_name = "${workflow.name}${workflow.isActive()?"":"(inactive)"}${workflow.isDraftWorkflow()?"(draft)":""}"
+            log.debug "Found: $workflow_name"
+            def wf = new XmlParser().parseText(workflowXml)
+            List<Node> wf_flat = wf.depthFirst()
+            wf_flat.each{ node ->
+                if (implementationClasses.contains(node.text())) {
+                    log.debug "Found node $node"
+                    def implementationClassName = implementationClasses.find{it == node.text()}
+                    def nodeInfo = getNodeInfo(node, implementationClassName)
+                    if (nodeInfo) {
+                        result += "$workflow_name;$nodeInfo<br>"
+                    }
+                }
+            }
+        }
+    }
+
+    result += "<br>Customfields<br>"
+
+    def customfieldmanager = ComponentAccessor.customFieldManager
+    result += customfieldmanager.customFieldObjects.findAll{
+        it.customFieldType.key ==~ appKey + /.*/  ||
+                it.customFieldSearcher?.descriptor?.toString() ==~ appKey + /.*/
+    }.collect{
+        "$it.name ($it.customFieldType.name, ${it.customFieldSearcher?.descriptor})"
+    }.join("<br>")
+
+}
+result
+
+static String getNodeInfo(Node n, String implementationClassName) {
+    String nodetext = ''
+    def valid_action = false
+    def valid_function = false
+    def valid_step = false
+    n = n.parent()
+    if (n.name() in ['function','condition','validator']) {
+        nodetext += implementationClassName + ";"
+        def p = n.parent()
+        while (p) {
+            switch (p.name()) {
+                case 'post-functions':
+                    valid_function = true
+                    nodetext += "post-function;"; break
+                case 'validators':
+                    valid_function = true
+                    nodetext += "validator;"; break
+                case 'conditions':
+                    valid_function = true
+                    nodetext += "condition;"; break
+                case 'action':
+                    valid_action = true
+                    nodetext += "${p.attribute('name')} (${p.attribute('id')});"; break
+                case 'step':
+                    valid_step = true
+                    nodetext += "${p.attribute('name')} (${p.attribute('id')})"; break
+                case 'global-actions':
+                    valid_step = true
+                    nodetext += "GLOBAL"; break
+                case 'initial-actions':
+                    valid_step = true
+                    nodetext += "INITIAL"; break
+            }
+            p = p.parent()
+        }
+    }
+    if (valid_action && valid_function && valid_step) {
+        return nodetext
+    } else {
+        return ""
+    }
+}
