@@ -1,0 +1,138 @@
+import groovy.xml.MarkupBuilder
+import com.atlassian.jira.issue.Issue
+import com.atlassian.jira.config.properties.APKeys
+import com.atlassian.jira.issue.link.LinkCollectionImpl;
+import com.atlassian.jira.issue.link.IssueLink;
+import com.atlassian.jira.component.ComponentAccessor;
+import com.atlassian.jira.issue.CustomFieldManager
+import groovy.sql.Sql
+import java.sql.*
+import org.apache.log4j.Logger
+import org.apache.log4j.Level
+  
+def log = Logger.getLogger("com.acme.CreateSubtask")
+log.setLevel(Level.DEBUG)
+
+def driver = Class.forName('com.mysql.jdbc.Driver').newInstance() as Driver 
+
+def props = new Properties()
+props.setProperty("user", "tablegriddb_user") 
+props.setProperty("password", "[ta4T2>?h-LSTGxD")
+def conn = driver.connect("jdbc:mysql://lv-jiradcstg01-db.corp.proofpoint.com:3306/tablegriddb?useSSL=false&useUnicode=true&characterEncoding=UTF8&sessionVariables=default_storage_engine=InnoDB", props) 
+def sql = new Sql(conn)
+
+CustomFieldManager customFieldManager = ComponentAccessor.getCustomFieldManager()
+String results = ""
+String accounthold = ""
+String clusterhold = ""
+String type = ""
+String field1Value = ""
+def eachsplittrimmed = ""
+def parsedJson = ''
+def linkedIssue = ''
+def sfCaseNumber = ''
+def sfCaseNumberValue = ''
+def valid = false;
+
+def customerInfo = customFieldManager.getCustomFieldObjectByName("SUS Multi Customer Lookup")
+
+List<IssueLink> allOutIssueLink = ComponentAccessor.getIssueLinkManager().getOutwardLinks(issue.getId());
+for (Iterator<IssueLink> outIterator = allOutIssueLink.iterator(); outIterator.hasNext();) {
+ IssueLink issueLink = (IssueLink) outIterator.next();
+ 	linkedIssue = issueLink.getSourceObject()
+ 	type = linkedIssue.getIssueType().getName();
+    
+		if(type.contains("Support")){
+ 			valid = true;
+ 			sfCaseNumber = customFieldManager.getCustomFieldObjectByName("Salesforce Case Number")
+			sfCaseNumberValue = linkedIssue.getCustomFieldValue(sfCaseNumber) 
+     		sfCaseNumberValue = linkedIssue.getCustomFieldValue(sfCaseNumber) 
+     		if (sfCaseNumberValue == null){sfCaseNumberValue = "No SF Case Number"}
+				field1Value = linkedIssue.getCustomFieldValue(customerInfo)
+    			String[] customerhold = field1Value.split(",")    
+				for (String eachSplit : customerhold) {
+
+					if(eachSplit.substring(0,1).equals("[")){
+						eachSplit = eachSplit.substring(1)
+						}  
+					if(eachSplit.substring(eachSplit.length()-1).equals("]")){
+    					eachSplit = eachSplit.substring(0,eachSplit.length()-1)
+						}
+					eachsplittrimmed = eachSplit.trim()					
+                    log.debug  "Cluster ID Value: " + eachsplittrimmed
+    
+                    results += linkedIssue.getKey() + ' | ' 				
+    					sql.eachRow("select * from sus_lookup where cluster_id = $eachsplittrimmed") { row ->
+        				results += row[0] 
+        				results += ' | '
+        				results += row[2] 
+        				results += ' | '
+        				results += row[3]
+        				results += ' | '
+        				results += row[4]
+        				results += ' | '
+        				results += row[5]
+        				results += ' | '
+        				results += row[6]
+        				results += ' | '
+        				results += row[7]
+                        results += ' | ' + sfCaseNumberValue + "<br />"
+    					} 
+                }
+            sql.close()
+            
+        }
+		else{results +=  ' | ' + sfCaseNumberValue + "<br />"}    
+}				
+
+List<IssueLink> allInIssueLink = ComponentAccessor.getIssueLinkManager().getInwardLinks(issue.getId());
+
+for (Iterator<IssueLink> outIterator = allInIssueLink.iterator(); outIterator.hasNext();) {
+ 	IssueLink issueLink = (IssueLink) outIterator.next();
+ 	linkedIssue = issueLink.getSourceObject()
+ 	type = linkedIssue.getIssueType().getName();
+    
+		if(type.contains("Support")){
+ 			valid = true;
+ 			sfCaseNumber = customFieldManager.getCustomFieldObjectByName("Salesforce Case Number")
+			sfCaseNumberValue = linkedIssue.getCustomFieldValue(sfCaseNumber) 
+     		sfCaseNumberValue = linkedIssue.getCustomFieldValue(sfCaseNumber) 
+     		if (sfCaseNumberValue == null){sfCaseNumberValue = "No SF Case Number"}
+				field1Value = linkedIssue.getCustomFieldValue(customerInfo)
+    			String[] customerhold = field1Value.split(",")    
+				for (String eachSplit : customerhold) {
+
+					if(eachSplit.substring(0,1).equals("[")){
+						eachSplit = eachSplit.substring(1)
+						}  
+					if(eachSplit.substring(eachSplit.length()-1).equals("]")){
+    					eachSplit = eachSplit.substring(0,eachSplit.length()-1)
+						}
+					eachsplittrimmed = eachSplit.trim()					
+                    log.debug  "Cluster ID Value: " + eachsplittrimmed
+                    results += linkedIssue.getKey() + ' | ' 				
+    					sql.eachRow("select * from sus_lookup where cluster_id = $eachsplittrimmed") { row ->
+        				results += row[0] 
+        				results += ' | '
+        				results += row[2] 
+        				results += ' | '
+        				results += row[3]
+        				results += ' | '
+        				results += row[4]
+        				results += ' | '
+        				results += row[5]
+        				results += ' | '
+        				results += row[6]
+        				results += ' | '
+        				results += row[7]
+                        results += ' | ' + sfCaseNumberValue + "<br />"
+    					}
+                }
+            sql.close()
+            
+        }
+		else{results +=  ' | ' + sfCaseNumberValue + "<br />"}    
+}				
+conn.close()	
+if(valid){return results;}
+return "No support issues"
